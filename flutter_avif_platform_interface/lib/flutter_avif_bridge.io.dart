@@ -12,9 +12,12 @@ import 'package:flutter_avif_platform_interface/models/encode_request.pb.dart';
 import 'package:flutter_avif_platform_interface/models/frame.pb.dart';
 import 'package:flutter_avif_platform_interface/models/key_request.pb.dart';
 import 'package:flutter_avif_platform_interface/models/encode_frame.pb.dart';
+import 'package:protobuf/protobuf.dart';
 export 'package:flutter_avif_platform_interface/models/encode_frame.pb.dart';
 
 class FlutterAvifImpl implements FlutterAvif {
+  static const int PROTOBUF_SIZE_LIMIT = 2147483648;
+
   final fa_ffi.FlutterAvifFFI flutterAvifFFI;
 
   FlutterAvifImpl(ffi.DynamicLibrary dyLib)
@@ -39,7 +42,10 @@ class FlutterAvifImpl implements FlutterAvif {
     port.handler = (response) {
       port.close();
 
-      final frame = Frame.fromBuffer(response);
+      final frame = Frame.create();
+      final codedInput = CodedBufferReader(response, sizeLimit: PROTOBUF_SIZE_LIMIT);
+      frame.mergeFromCodedBufferReader(codedInput);
+
       completer.complete(frame);
     };
 
@@ -141,7 +147,10 @@ class FlutterAvifImpl implements FlutterAvif {
     final port = RawReceivePort();
     port.handler = (response) {
       port.close();
-      final frame = Frame.fromBuffer(response);
+      
+      final frame = Frame.create();
+      final codedInput = CodedBufferReader(response, sizeLimit: PROTOBUF_SIZE_LIMIT);
+      frame.mergeFromCodedBufferReader(codedInput);
 
       completer.complete(frame);
     };
@@ -172,7 +181,10 @@ class FlutterAvifImpl implements FlutterAvif {
     final port = RawReceivePort();
     port.handler = (response) {
       port.close();
-      final info = AvifInfo.fromBuffer(response);
+
+      final info = AvifInfo.create();
+      final codedInput = CodedBufferReader(response, sizeLimit: PROTOBUF_SIZE_LIMIT);
+      info.mergeFromCodedBufferReader(codedInput);
 
       completer.complete(info);
     };
