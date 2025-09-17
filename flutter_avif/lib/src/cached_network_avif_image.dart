@@ -78,9 +78,17 @@ class CachedNetworkAvifImageProvider extends NetworkAvifImage {
   ) async {
     assert(key == this);
 
+    final Map<String, String> requestHeaders = {};
+    headers?.forEach((String name, String value) {
+      requestHeaders[name.toLowerCase()] = value;
+    });
+    if(!requestHeaders.containsKey("accept")) {
+      requestHeaders["accept"] = "image/avif";
+    }
+
     final stream = DefaultCacheManager().getImageFile(
       url,
-      headers: headers,
+      headers: requestHeaders,
       withProgress: true,
     );
 

@@ -808,8 +808,12 @@ class NetworkAvifImage extends ImageProvider<NetworkAvifImage> {
 
     final httpRequest = http.Request('GET', Uri.parse(url));
     headers?.forEach((String name, String value) {
-      httpRequest.headers[name] = value;
+      httpRequest.headers[name.toLowerCase()] = value;
     });
+    if(!httpRequest.headers.containsKey("accept")) {
+      httpRequest.headers["accept"] = "image/avif";
+    }
+
     final httpResponse = await httpRequest.send();
     if (httpResponse.statusCode != HttpStatus.ok) {
       throw StateError(
