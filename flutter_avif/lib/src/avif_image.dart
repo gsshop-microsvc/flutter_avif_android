@@ -95,6 +95,7 @@ class AvifImage extends StatefulWidget {
     this.excludeFromSemantics = false,
     this.gaplessPlayback = false,
     this.frameBuilder,
+    bool fallbackToNativeCodec = false,
   })  : image = avif_platform.FlutterAvifPlatform.useNativeDecoder
             ? FileImage(
                 file,
@@ -104,6 +105,7 @@ class AvifImage extends StatefulWidget {
                 file,
                 scale: scale,
                 overrideDurationMs: overrideDurationMs,
+                fallbackToNativeCodec: fallbackToNativeCodec,
               ),
         loadingBuilder = null,
         super(key: key);
@@ -133,6 +135,7 @@ class AvifImage extends StatefulWidget {
     this.gaplessPlayback = false,
     this.frameBuilder,
     AssetBundle? bundle,
+    bool fallbackToNativeCodec = false,
   })  : image = avif_platform.FlutterAvifPlatform.useNativeDecoder
             ? AssetImage(
                 name,
@@ -143,6 +146,7 @@ class AvifImage extends StatefulWidget {
                 scale: scale,
                 overrideDurationMs: overrideDurationMs,
                 bundle: bundle,
+                fallbackToNativeCodec: fallbackToNativeCodec,
               ),
         loadingBuilder = null,
         super(key: key);
@@ -173,6 +177,7 @@ class AvifImage extends StatefulWidget {
     this.frameBuilder,
     this.loadingBuilder,
     Map<String, String>? headers,
+    bool fallbackToNativeCodec = false,
   })  : image = avif_platform.FlutterAvifPlatform.useNativeDecoder
             ? NetworkImage(
                 url,
@@ -184,6 +189,7 @@ class AvifImage extends StatefulWidget {
                 scale: scale,
                 overrideDurationMs: overrideDurationMs,
                 headers: headers,
+                fallbackToNativeCodec: fallbackToNativeCodec,
               ),
         super(key: key);
 
@@ -211,6 +217,7 @@ class AvifImage extends StatefulWidget {
     this.excludeFromSemantics = false,
     this.gaplessPlayback = false,
     this.frameBuilder,
+    bool fallbackToNativeCodec = false,
   })  : image = avif_platform.FlutterAvifPlatform.useNativeDecoder
             ? MemoryImage(
                 bytes,
@@ -220,6 +227,7 @@ class AvifImage extends StatefulWidget {
                 bytes,
                 scale: scale,
                 overrideDurationMs: overrideDurationMs,
+                fallbackToNativeCodec: fallbackToNativeCodec,
               ),
         loadingBuilder = null,
         super(key: key);
@@ -519,11 +527,13 @@ class FileAvifImage extends ImageProvider<FileAvifImage> {
     this.file, {
     this.scale = 1.0,
     this.overrideDurationMs = -1,
+    this.fallbackToNativeCodec = false,
   });
 
   final File file;
   final double scale;
   final int? overrideDurationMs;
+  final bool fallbackToNativeCodec;
 
   @override
   Future<FileAvifImage> obtainKey(ImageConfiguration configuration) {
@@ -559,17 +569,19 @@ class FileAvifImage extends ImageProvider<FileAvifImage> {
     }
 
     final fType = isAvifFile(bytes.sublist(0, 16));
-    if (fType == AvifFileType.unknown) {
+    if (fType == AvifFileType.unknown && !fallbackToNativeCodec) {
       throw StateError('$file is not an avif file.');
     }
 
-    final codec = fType == AvifFileType.avif
-        ? SingleFrameAvifCodec(bytes: bytes)
-        : MultiFrameAvifCodec(
-            key: hashCode,
-            avifBytes: bytes,
-            overrideDurationMs: overrideDurationMs,
-          );
+    final codec = switch (fType) {
+      AvifFileType.avif => SingleFrameAvifCodec(bytes: bytes),
+      AvifFileType.avis => MultiFrameAvifCodec(
+          key: hashCode,
+          avifBytes: bytes,
+          overrideDurationMs: overrideDurationMs,
+        ),
+      AvifFileType.unknown => NativeCodec(bytes: bytes),
+    };
     await codec.ready();
 
     return codec;
@@ -597,12 +609,14 @@ class AssetAvifImage extends ImageProvider<AssetAvifImage> {
     this.scale = 1.0,
     this.overrideDurationMs = -1,
     this.bundle,
+    this.fallbackToNativeCodec = false,
   });
 
   final String asset;
   final double scale;
   final int? overrideDurationMs;
   final AssetBundle? bundle;
+  final bool fallbackToNativeCodec;
 
   static const double _naturalResolution = 1.0;
 
@@ -681,17 +695,19 @@ class AssetAvifImage extends ImageProvider<AssetAvifImage> {
 
     final bytesUint8List = bytes.buffer.asUint8List(0);
     final fType = isAvifFile(bytesUint8List.sublist(0, 16));
-    if (fType == AvifFileType.unknown) {
+    if (fType == AvifFileType.unknown && !fallbackToNativeCodec) {
       throw StateError('$asset is not an avif file.');
     }
 
-    final codec = fType == AvifFileType.avif
-        ? SingleFrameAvifCodec(bytes: bytesUint8List)
-        : MultiFrameAvifCodec(
-            key: hashCode,
-            avifBytes: bytesUint8List,
-            overrideDurationMs: overrideDurationMs,
-          );
+    final codec = switch (fType) {
+      AvifFileType.avif => SingleFrameAvifCodec(bytes: bytesUint8List),
+      AvifFileType.avis => MultiFrameAvifCodec(
+          key: hashCode,
+          avifBytes: bytesUint8List,
+          overrideDurationMs: overrideDurationMs,
+        ),
+      AvifFileType.unknown => NativeCodec(bytes: bytesUint8List),
+    };
     await codec.ready();
 
     return codec;
@@ -765,12 +781,14 @@ class NetworkAvifImage extends ImageProvider<NetworkAvifImage> {
     this.scale = 1.0,
     this.overrideDurationMs = -1,
     this.headers,
+    this.fallbackToNativeCodec = false,
   });
 
   final String url;
   final double scale;
   final int? overrideDurationMs;
   final Map<String, String>? headers;
+  final bool fallbackToNativeCodec;
 
   @override
   Future<NetworkAvifImage> obtainKey(ImageConfiguration configuration) {
@@ -841,17 +859,19 @@ class NetworkAvifImage extends ImageProvider<NetworkAvifImage> {
     }
 
     final fType = isAvifFile(bytes.sublist(0, 16));
-    if (fType == AvifFileType.unknown) {
+    if (fType == AvifFileType.unknown && !fallbackToNativeCodec) {
       throw StateError('$url is not an avif file.');
     }
 
-    final codec = fType == AvifFileType.avif
-        ? SingleFrameAvifCodec(bytes: bytes)
-        : MultiFrameAvifCodec(
-            key: hashCode,
-            avifBytes: bytes,
-            overrideDurationMs: overrideDurationMs,
-          );
+    final codec = switch (fType) {
+      AvifFileType.avif => SingleFrameAvifCodec(bytes: bytes),
+      AvifFileType.avis => MultiFrameAvifCodec(
+          key: hashCode,
+          avifBytes: bytes,
+          overrideDurationMs: overrideDurationMs,
+        ),
+      AvifFileType.unknown => NativeCodec(bytes: bytes),
+    };
     await codec.ready();
 
     return codec;
@@ -878,11 +898,13 @@ class MemoryAvifImage extends ImageProvider<MemoryAvifImage> {
     this.bytes, {
     this.scale = 1.0,
     this.overrideDurationMs = -1,
+    this.fallbackToNativeCodec = false,
   });
 
   final Uint8List bytes;
   final double scale;
   final int? overrideDurationMs;
+  final bool fallbackToNativeCodec;
 
   @override
   Future<MemoryAvifImage> obtainKey(ImageConfiguration configuration) {
@@ -906,17 +928,19 @@ class MemoryAvifImage extends ImageProvider<MemoryAvifImage> {
 
     final bytesUint8List = bytes.buffer.asUint8List(0);
     final fType = isAvifFile(bytesUint8List.sublist(0, 16));
-    if (fType == AvifFileType.unknown) {
+    if (fType == AvifFileType.unknown && !fallbackToNativeCodec) {
       throw StateError('Loaded file is not an avif file.');
     }
 
-    final codec = fType == AvifFileType.avif
-        ? SingleFrameAvifCodec(bytes: bytesUint8List)
-        : MultiFrameAvifCodec(
-            key: hashCode,
-            avifBytes: bytesUint8List,
-            overrideDurationMs: overrideDurationMs,
-          );
+    final codec = switch (fType) {
+      AvifFileType.avif => SingleFrameAvifCodec(bytes: bytesUint8List),
+      AvifFileType.avis => MultiFrameAvifCodec(
+          key: hashCode,
+          avifBytes: bytesUint8List,
+          overrideDurationMs: overrideDurationMs,
+        ),
+      AvifFileType.unknown => NativeCodec(bytes: bytesUint8List),
+    };
     await codec.ready();
 
     return codec;
@@ -1096,6 +1120,83 @@ class SingleFrameAvifCodec implements AvifCodec {
 
   @override
   void dispose() {}
+}
+
+class NativeCodec implements AvifCodec {
+  late Completer<void> _ready;
+  late ui.Codec _nativeCodec;
+
+  int _frameCount = 1;
+  @override
+  int get frameCount => _frameCount;
+
+  int _durationMs = -1;
+  @override
+  int get durationMs => _durationMs;
+
+  NativeCodec({
+    required Uint8List bytes,
+    int? overrideDurationMs = -1,
+  }) {
+    _ready = Completer();
+    try {
+      ui.instantiateImageCodec(bytes).then((codec) {
+        _nativeCodec = codec;
+        _frameCount = codec.frameCount;
+        _durationMs = overrideDurationMs ?? -1;
+
+        _ready.complete();
+      });
+    } catch (e) {
+      _ready.complete();
+    }
+  }
+
+  @override
+  ready() async {
+    if (_ready.isCompleted) {
+      return;
+    }
+    await _ready.future;
+  }
+
+  @override
+  Future<AvifFrameInfo> getNextFrame() async {
+    final Completer<AvifFrameInfo> completer = Completer<AvifFrameInfo>.sync();
+    final String? error =
+        _getNextFrame((ui.Image? image, int durationMilliseconds) {
+      if (image == null) {
+        completer.completeError(Exception(
+            'Codec failed to produce an image, possibly due to invalid image data.'));
+      } else {
+        completer.complete(AvifFrameInfo(
+          image: image,
+          duration: Duration(milliseconds: durationMilliseconds),
+        ));
+      }
+    });
+    if (error != null) {
+      throw Exception(error);
+    }
+    return completer.future;
+  }
+
+  String? _getNextFrame(void Function(ui.Image?, int) callback) {
+    try {
+      _nativeCodec.getNextFrame().then((frame) {
+        callback(frame.image, frame.duration.inMilliseconds);
+      });
+      return null;
+    } catch (e) {
+      callback(null, 0);
+      return e.toString();
+    }
+  }
+
+  @override
+  void dispose() {
+    _nativeCodec.dispose();
+  }
 }
 
 class AvifFrameInfo {

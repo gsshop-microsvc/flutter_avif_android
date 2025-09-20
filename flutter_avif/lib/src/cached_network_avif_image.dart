@@ -31,12 +31,14 @@ class CachedNetworkAvifImage extends AvifImage {
     super.frameBuilder,
     super.loadingBuilder,
     Map<String, String>? headers,
+    bool fallbackToNativeCodec = false,
   }) : super(
           image: CachedNetworkAvifImageProvider(
             url,
             scale: scale,
             overrideDurationMs: overrideDurationMs,
             headers: headers,
+            fallbackToNativeCodec: fallbackToNativeCodec,
           ),
         );
 }
@@ -47,6 +49,7 @@ class CachedNetworkAvifImageProvider extends NetworkAvifImage {
     super.scale = 1.0,
     super.overrideDurationMs = -1,
     super.headers,
+    super.fallbackToNativeCodec = false,
   });
 
   @override
@@ -111,17 +114,19 @@ class CachedNetworkAvifImageProvider extends NetworkAvifImage {
         }
 
         final fType = isAvifFile(bytes.sublist(0, 16));
-        if (fType == AvifFileType.unknown) {
+        if (fType == AvifFileType.unknown && !fallbackToNativeCodec) {
           throw StateError('$url is not an avif file.');
         }
 
-        final codec = fType == AvifFileType.avif
-            ? SingleFrameAvifCodec(bytes: bytes)
-            : MultiFrameAvifCodec(
-                key: hashCode,
-                avifBytes: bytes,
-                overrideDurationMs: overrideDurationMs,
-              );
+        final codec = switch (fType) {
+          AvifFileType.avif => SingleFrameAvifCodec(bytes: bytes),
+          AvifFileType.avis => MultiFrameAvifCodec(
+              key: hashCode,
+              avifBytes: bytes,
+              overrideDurationMs: overrideDurationMs,
+            ),
+          AvifFileType.unknown => NativeCodec(bytes: bytes),
+        };
         await codec.ready();
 
         return codec;
