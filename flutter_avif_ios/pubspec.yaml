@@ -11,7 +11,10 @@ dependencies:
   flutter:
     sdk: flutter
   flutter_avif_platform_interface:
-    path: ../flutter_avif_platform_interface
+    git: 
+      url: https://github.com/gsshop-microsvc/flutter_avif_android.git
+      ref: gsshop_v1
+      path: ./flutter_avif_platform_interface/
 
 dev_dependencies:
   flutter_test:
