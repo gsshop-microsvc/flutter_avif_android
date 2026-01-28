@@ -11,9 +11,13 @@ dependencies:
   ffi: ^2.1.0
   flutter:
     sdk: flutter
-  flutter_rust_bridge: "1.82.3"
+  flutter_rust_bridge:
+    git: 
+      url: https://github.com/gsshop-microsvc/flutter_rust_bridge_android.git
+      ref: 7f1a96cfcdb710802f95d5ed7fc311729e16e8ec
+      path: ./frb_dart/
   meta: ^1.9.1
-  uuid: ^4.1.0
+  uuid: 4.0.0
 
 dev_dependencies:
   flutter_test:
