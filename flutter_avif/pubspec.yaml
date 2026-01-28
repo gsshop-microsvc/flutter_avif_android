@@ -15,17 +15,17 @@ dependencies:
     git: 
       url: https://github.com/gsshop-microsvc/flutter_avif_android.git
       ref: gsshop_v1
-      path: ../flutter_avif_platform_interface/
+      path: ./flutter_avif_platform_interface/
   flutter_avif_android:
     git: 
       url: https://github.com/gsshop-microsvc/flutter_avif_android.git
       ref: gsshop_v1
-      path: ../flutter_avif_android/
+      path: ./flutter_avif_android/
   flutter_avif_ios:
     git: 
       url: https://github.com/gsshop-microsvc/flutter_avif_android.git
       ref: gsshop_v1
-      path: ../flutter_avif_ios/
+      path: ./flutter_avif_ios/
   http: ^1.2.0
   exif: ^3.3.0
 
